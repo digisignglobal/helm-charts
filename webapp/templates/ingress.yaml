@@ -1,0 +1,41 @@
+{{- if .Values.ingress.enabled -}}
+{{- $svcPort := .Values.service.port -}}
+{{- $pathType := .Values.ingress.pathType -}}
+{{- $path := .Values.ingress.path -}}
+{{- $fullName := include "webapp.fullname" . -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "web.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+      {{- range $_, $value := .Values.ingress.hosts }}
+      - {{ $value }}
+      {{- end }}
+      {{- if hasKey .Values.ingress.annotations "cert-manager.io/cluster-issuer" }}
+      secretName: {{ include "ingress.tls.secretName" . }}
+      {{- end }}
+  {{- end }}
+  rules:
+  {{- range $_, $value := .Values.ingress.hosts }}
+    - host: {{ $value | quote }}
+      http:
+        paths:
+          - path: {{ $path }}
+            pathType: {{ $pathType }}
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  number: {{ $svcPort }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,20 @@
+{{- if .Values.web.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "webapp.fullname" . }}
+  labels:
+    {{- include "web.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - protocol: TCP
+      port: {{ .Values.service.port }}
+      name: http
+      {{- with .Values.service.targetPort }}
+      targetPort: {{ . }}
+      {{- end }}
+  selector:
+    {{- include "web.selectorLabels" . | nindent 4 }}
+---
+{{- end }}

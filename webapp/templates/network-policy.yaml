@@ -1,0 +1,54 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  labels:
+    {{- include "webapp.labels" . | nindent 4 }}
+spec:
+  ingress: []
+  podSelector: {}
+
+{{ if .Values.allowTrafficInNamespace -}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-current-namespace
+  labels:
+    {{- include "webapp.labels" . | nindent 4 }}
+spec:
+  ingress:
+  - from:
+    - podSelector: {}
+      namespaceSelector: {}
+    ports:
+    - port: {{ .Values.service.targetPort }}
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      {{- include "web.selectorLabels" . | nindent 6 }}
+{{- end }}
+
+{{ if eq .Values.ingress.ingressClassName "public-nginx-nlb" -}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "web.fullname" . }}
+  labels:
+    {{- include "webapp.labels" . | nindent 4 }}
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: public-nlb
+          name: public-nlb
+    ports:
+    - port: {{ .Values.service.targetPort }}
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      {{- include "web.selectorLabels" . | nindent 6 }}
+{{- end }}
+

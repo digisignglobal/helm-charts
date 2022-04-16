@@ -1,0 +1,65 @@
+{{- $cronprefix := include "cron.fullname" . -}}
+{{- range $jobkey, $jobparams := .Values.cron.jobList }}
+  {{- if $jobparams.enabled }}
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ printf "%s-%s" $cronprefix $jobkey }}
+  labels:
+    {{- include "cron.labels" $ | nindent 4 }}
+spec:
+  concurrencyPolicy: Allow
+  failedJobsHistoryLimit: 1
+  schedule: {{ $jobparams.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          name: {{ printf "%s-%s" $cronprefix $jobkey }}
+          labels:
+            {{- include "cron.labels" $ | nindent 12 }}
+        spec:
+          serviceAccountName: {{ include "webapp.serviceAccountName" $ }}
+          {{- with .Values.podSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.podSecurityContext | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: {{ include "cron.fullname"  $ }}
+              image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag }}"
+              imagePullPolicy: {{ $.Values.image.pullPolicy }}
+              args:
+                {{- toYaml $jobparams.args | nindent 16 }}
+              envFrom: {{- if $.Values.envFrom }}
+                  {{- toYaml $.Values.envFrom | nindent 16 }}
+                {{- end }}
+              env:
+                - name: ENVIRONMENT
+                  value: {{ $.Values.global.environment | quote }}
+                {{- range $key, $value := $.Values.extraEnv }}
+                - name: {{ $key }}
+                  value: {{ $value | quote }}
+                {{- end }}
+                {{- range $key, $value := $jobparams.extraEnv }}
+                - name: {{ $key }}
+                  value: {{ $value | quote }}
+                {{- end }}
+                {{- range $key, $secret := $.Values.secretEnv }}
+                - name: {{ $key }}
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ $secret.name }}
+                      key: {{ $secret.key }}
+                {{- end }}
+              securityContext:
+                {{- toYaml $.Values.securityContext | nindent 16 }}
+              resources:
+                {{- toYaml $jobparams.resources | nindent 16 }}
+            {{- range $key, $value := $.Values.sidecars }}
+            - name: {{ $key }}
+              {{- toYaml $value | nindent 14 }}
+            {{- end }}
+          restartPolicy: OnFailure
+---
+  {{- end }}
+{{- end }}
