@@ -1,0 +1,13 @@
+apiVersion: v1
+entries:
+  webapp:
+  - apiVersion: v1
+    created: "2022-04-16T22:20:11.760588962+10:00"
+    description: A Helm chart for running web apps in Kubernetes
+    digest: 150ef9e4b3234e6ddb53c29b8f3d54b0aae2a5af748982e6000f2166833f10f0
+    name: webapp
+    type: application
+    urls:
+    - https://digisignglobal.github.io/helm-charts/webapp-0.0.1.tgz
+    version: 0.0.1
+generated: "2022-04-16T22:20:11.759849246+10:00"
